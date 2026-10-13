@@ -1,0 +1,83 @@
+# Ideal Gas Law Explorer with Database Integration
+
+A desktop application to import Excel files, visualize relationships between physical components, and store/retrieve data from a local SQLite database, starting with the Ideal Gas Law (PV = nRT) explorer.
+
+## Features
+
+- Import data from Excel files (.xlsx, .xls)
+- Interactive plotting of selected columns (scatter plots)
+- Data table view for inspecting imported data
+- Local SQLite database for saving and loading experimental runs
+- Application state persistence (last used columns, etc.)
+- Database browser tab to view, load, and delete saved runs
+- Simple and intuitive Tkinter-based GUI
+
+## Requirements
+
+- Python 3.14 or higher
+- Required packages:
+  - pandas
+  - matplotlib
+  - openpyxl
+  - tkinter (usually comes with Python)
+
+## Installation
+
+1. Clone or download this repository.
+2. Create a virtual environment (optional but recommended):
+   ```bash
+   python -m venv venv
+   source venv/Scripts/activate  # On Windows
+   # or source venv/bin/activate  # On macOS/Linux
+   ```
+3. Install the required packages:
+   ```bash
+   pip install pandas matplotlib openpyxl
+   ```
+
+## Usage
+
+1. Run the application:
+   ```bash
+   python ideal_gas_app.py
+   ```
+2. Click "Load Excel File" to select your Excel file.
+3. Choose X and Y columns from the dropdown menus.
+4. Click "Plot Data" to visualize the relationship.
+5. Use the "Database" tab to:
+   - Save current data to the database with a description
+   - Load previously saved runs
+   - Delete unwanted runs
+   - Refresh the runs list
+6. Switch between the "Plot", "Data", and "Database" tabs to view different aspects of your work.
+
+## Sample Data
+
+The project includes a `sample_data.xlsx` file generated from the Ideal Gas Law:
+- Temperature (K) from 200 to 400
+- Volume (m³) from 0.001 to 0.01
+- Pressure (Pa) calculated as P = nRT/V (with n=1 mol, R=8.314462618 J/(mol·K))
+
+## Database Storage
+
+The application uses a local SQLite database stored in your user directory:
+- Windows: `C:\Users\<username>\.thermoviz\thermoviz.db`
+- macOS/Linux: `~/.thermoviz/thermoviz.db`
+
+The database stores:
+- Experimental runs with timestamps, descriptions, and file origins
+- The actual data (as JSON) for small to medium datasets
+- Application state (like last used column selections)
+
+## Extending the Project
+
+This application can be extended to:
+- Import data from SQL databases (beyond the local SQLite)
+- Model more complex physical networks using networkx
+- Add advanced visualization options (line plots, bar charts, etc.)
+- Incorporate machine learning for predictive modeling
+- Add data analysis tools (statistics, curve fitting, etc.)
+
+## License
+
+MIT
