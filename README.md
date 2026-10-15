@@ -15,6 +15,7 @@ A desktop application to import Excel files, visualize relationships between phy
 ## Requirements
 
 - Python 3.14 or higher
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - Required packages:
   - pandas
   - matplotlib
@@ -24,22 +25,16 @@ A desktop application to import Excel files, visualize relationships between phy
 ## Installation
 
 1. Clone or download this repository.
-2. Create a virtual environment (optional but recommended):
+2. Install the project dependencies with `uv`:
    ```bash
-   python -m venv venv
-   source venv/Scripts/activate  # On Windows
-   # or source venv/bin/activate  # On macOS/Linux
-   ```
-3. Install the required packages:
-   ```bash
-   pip install pandas matplotlib openpyxl
+   uv sync
    ```
 
 ## Usage
 
 1. Run the application:
    ```bash
-   python ideal_gas_app.py
+   uv run ideal_gas_app.py
    ```
 2. Click "Load Excel File" to select your Excel file.
 3. Choose X and Y columns from the dropdown menus.

@@ -105,6 +105,8 @@ venv.bak/
 # mkdocs documentation
 /site
 
+venv/
+
 # mypy
 .mypy_cache/
 .dmypy.json
@@ -120,7 +122,6 @@ dmypy.json
 cython_debug
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo

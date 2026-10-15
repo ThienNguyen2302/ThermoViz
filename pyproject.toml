@@ -1,0 +1,21 @@
+[project]
+name = "thermoviz"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "ThienNguyen2302", email = "nguyenngocthien749@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.6",
+]
+
+[project.scripts]
+thermoviz = "thermoviz:main"
+
+[build-system]
+requires = ["uv_build>=0.12.20,<0.13.0"]
+build-backend = "uv_build"

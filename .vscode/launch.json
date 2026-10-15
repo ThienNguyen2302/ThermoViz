@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Ideal Gas App",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\ideal_gas_app.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+    ]
+}
