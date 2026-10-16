@@ -5,7 +5,10 @@ from pathlib import Path
 from datetime import datetime
 
 class ThermoVizDatabase:
+    """Enhanced database layer for ThermoViz: experimental runs + network modeling."""
+
     def __init__(self, db_path=None):
+        """Initialize database connection and create tables."""
         if db_path is None:
             # Store in user's home directory under .thermoviz
             self.db_dir = Path.home() / ".thermoviz"
@@ -14,8 +17,10 @@ class ThermoVizDatabase:
         self.db_path = str(db_path)
         self.init_database()
 
+    # -------DATABASE INITIALIZATION------------------------------
+
     def init_database(self):
-        """Create tables if they don't exist."""
+        """Create all required tables if they don't exist."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
@@ -108,7 +113,7 @@ class ThermoVizDatabase:
 
             conn.commit()
 
-    # ========== EXPERIMENTAL RUNS METHODS (Backward Compatible) ==========
+    # -------EXPERIMENTAL RUNS METHODS (Backward Compatible)------------------------------
 
     def add_run(self, df, description="", file_path=""):
         """
@@ -159,7 +164,7 @@ class ThermoVizDatabase:
             if row is None:
                 return None, None, None
 
-            data_json, description, file_path, columns_json, shape_json = row
+            data_json, description, file_path, _, _ = row
             # Reconstruct DataFrame using StringIO to avoid file path interpretation issues
             import io
             try:
@@ -200,7 +205,7 @@ class ThermoVizDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
-    # ========== NETWORK COMPONENTS METHODS ==========
+    # -------NETWORK COMPONENTS METHODS------------------------------
 
     def add_component(self, name, component_type, properties=None, created_in_run=None):
         """
@@ -331,7 +336,7 @@ class ThermoVizDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
-    # ========== NETWORK RELATIONSHIPS METHODS ==========
+    # -------NETWORK RELATIONSHIPS METHODS------------------------------
 
     def add_relationship(self, source_component_id, target_component_id, relationship_type, properties=None, created_in_run=None):
         """
@@ -429,7 +434,7 @@ class ThermoVizDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
-    # ========== MEASUREMENTS METHODS ==========
+    # -------MEASUREMENTS METHODS------------------------------
 
     def add_measurement(self, component_id, run_id, timestamp, measurement_type, value, unit=None):
         """
@@ -535,7 +540,7 @@ class ThermoVizDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
-    # ========== NETWORK ANALYSIS HELPERS ==========
+    # -------NETWORK ANALYSIS HELPERS------------------------------
 
     def get_neighbors(self, component_id):
         """
@@ -588,7 +593,7 @@ class ThermoVizDatabase:
             ''', (component_id, component_id))
             return cursor.fetchone()[0]
 
-    # ========== APP STATE METHODS (Unchanged) ==========
+    # -------APPLICATION STATE METHODS------------------------------
 
     def save_app_state(self, key, value):
         """Save a piece of application state (as JSON)."""
@@ -652,7 +657,7 @@ if __name__ == "__main__":
     print(f"All runs: {runs}")
 
     # Test network component functionality
-    print("\n--- Testing Network Components ---")
+    print("\n--- Testing Network Components -------")
     tank_id = db.add_component('Reactor_Vessel_1', 'tank',
                               {'volume': 10.0, 'material': 'stainless_steel', 'max_pressure': 100000})
     valve_id = db.add_component('Inlet_Valve', 'valve',
@@ -665,7 +670,7 @@ if __name__ == "__main__":
     print(f"Added sensor with ID: {sensor_id}")
 
     # Test network relationship functionality
-    print("\n--- Testing Network Relationships ---")
+    print("\n--- Testing Network Relationships -------")
     flow_rel_id = db.add_relationship(tank_id, valve_id, 'fluid_flow',
                                      {'length': 2.5, 'diameter': 0.1, 'roughness': 0.0001})
     signal_rel_id = db.add_relationship(valve_id, sensor_id, 'signal',
@@ -675,7 +680,7 @@ if __name__ == "__main__":
     print(f"Added signal relationship with ID: {signal_rel_id}")
 
     # Test measurements
-    print("\n--- Testing Measurements ---")
+    print("\n--- Testing Measurements -------")
     db.add_measurement(tank_id, run_id, 0, 'pressure', 101325, 'Pa')
     db.add_measurement(tank_id, run_id, 0, 'temperature', 298.15, 'K')
     db.add_measurement(valve_id, run_id, 0, 'flow_rate', 0.0015, 'm³/s')
@@ -691,7 +696,7 @@ if __name__ == "__main__":
     print(f"Degree of tank {tank_id}: {db.get_component_degree(tank_id)}")
 
     # Test app state
-    print("\n--- Testing App State ---")
+    print("\n--- Testing App State -------")
     db.save_app_state("last_used_component", "Reactor_Vessel_1")
     state = db.load_app_state("last_used_component")
     print(f"Loaded app state: {state}")
