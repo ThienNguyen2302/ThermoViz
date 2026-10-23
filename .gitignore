@@ -156,3 +156,4 @@ store_sessions.txt
 # Temp files
 tmp/
 temp/
+.worktrees/
