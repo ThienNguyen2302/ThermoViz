@@ -64,6 +64,33 @@ The database stores:
 - The actual data (as JSON) for small to medium datasets
 - Application state (like last used column selections)
 
+## Validation
+
+Set up the supported Python environment and run the automated checks with:
+
+```bash
+uv sync
+uv run pytest
+uv run python test_imports.py
+```
+
+The pytest suite uses temporary SQLite database files and is headless-friendly;
+it does not modify the persistent database under `~/.thermoviz`. The
+`test_imports.py` command checks both Python dependencies and whether Tkinter
+can create a display root. It reports display/Tk availability separately from
+dependency import errors, so it may require a desktop environment.
+
+For the manual desktop check, launch the application with:
+
+```bash
+uv run ideal_gas_app.py
+```
+
+Load `sample_data.xlsx`, choose two columns, plot them, save the active data
+as a run, reload the run from the Database tab, and delete it. The manual
+check uses the per-user database at `~/.thermoviz/thermoviz.db` and should
+complete without an application traceback.
+
 ## Extending the Project
 
 This application can be extended to:

@@ -5,19 +5,22 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    # Try to import the necessary modules
     import tkinter as tk
     from tkinter import ttk
     import pandas as pd
     import matplotlib
-    print("All imports successful")
-    
-    # Try to create a Tkinter root and destroy it (without showing)
-    root = tk.Tk()
-    root.withdraw()  # Hide the window
-    root.destroy()
-    print("Tkinter root created and destroyed successfully")
-    
 except Exception as e:
-    print(f"Error during test: {e}")
+    print(f"Error importing dependencies: {e}")
     sys.exit(1)
+
+print("All imports successful")
+
+try:
+    root = tk.Tk()
+    root.withdraw()
+    root.destroy()
+except tk.TclError as e:
+    print(f"Tkinter display unavailable: {e}")
+    sys.exit(2)
+
+print("Tkinter root created and destroyed successfully")

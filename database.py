@@ -17,11 +17,17 @@ class ThermoVizDatabase:
         self.db_path = str(db_path)
         self.init_database()
 
+    def _connect(self):
+        """Open a database connection with foreign-key enforcement enabled."""
+        connection = sqlite3.connect(self.db_path)
+        connection.execute("PRAGMA foreign_keys = ON")
+        return connection
+
     # -------DATABASE INITIALIZATION------------------------------
 
     def init_database(self):
         """Create all required tables if they don't exist."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
 
             # Table for storing experimental runs
@@ -65,7 +71,7 @@ class ThermoVizDatabase:
                     created_in_run INTEGER,
                     FOREIGN KEY (source_component_id) REFERENCES network_components(id),
                     FOREIGN KEY (target_component_id) REFERENCES network_components(id),
-                    FOREIGN KEY (created_in_run) REFERENCES runs(id),
+                    FOREIGN KEY (created_in_run) REFERENCES runs(id) ON DELETE SET NULL,
                     CHECK (source_component_id != target_component_id)  -- No self-loops
                 )
             ''')
@@ -134,7 +140,7 @@ class ThermoVizDatabase:
 
         timestamp = datetime.now().isoformat()
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO runs (timestamp, description, file_path, data_json, columns_json, shape_json)
@@ -153,7 +159,7 @@ class ThermoVizDatabase:
         Returns:
             tuple: (df, description, file_path) or (None, None, None) if not found
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT data_json, description, file_path, columns_json, shape_json
@@ -181,7 +187,7 @@ class ThermoVizDatabase:
         Returns:
             list of tuples: (id, timestamp, description, file_path, shape)
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id, timestamp, description, file_path, shape_json
@@ -199,7 +205,7 @@ class ThermoVizDatabase:
 
     def delete_run(self, run_id):
         """Delete a run by ID."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('DELETE FROM runs WHERE id = ?', (run_id,))
             conn.commit()
@@ -222,7 +228,7 @@ class ThermoVizDatabase:
         """
         properties_json = json.dumps(properties) if properties is not None else None
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO network_components (name, component_type, properties, created_in_run)
@@ -241,7 +247,7 @@ class ThermoVizDatabase:
         Returns:
             tuple: (id, name, component_type, properties, created_in_run) or None if not found
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id, name, component_type, properties, created_in_run
@@ -258,7 +264,7 @@ class ThermoVizDatabase:
 
     def get_all_components(self):
         """Get all network components."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id, name, component_type, properties, created_in_run
@@ -275,7 +281,7 @@ class ThermoVizDatabase:
 
     def get_components_by_type(self, component_type):
         """Get all components of a specific type."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id, name, component_type, properties, created_in_run
@@ -316,7 +322,7 @@ class ThermoVizDatabase:
             WHERE id = ?
         '''
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             conn.commit()
@@ -324,7 +330,7 @@ class ThermoVizDatabase:
 
     def delete_component(self, component_id):
         """Delete a component and its associated relationships."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             # Delete associated measurements first (due to foreign key)
             cursor.execute('DELETE FROM measurements WHERE component_id = ?', (component_id,))
@@ -357,7 +363,7 @@ class ThermoVizDatabase:
 
         properties_json = json.dumps(properties) if properties is not None else None
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO network_relationships (source_component_id, target_component_id, relationship_type, properties, created_in_run)
@@ -376,7 +382,7 @@ class ThermoVizDatabase:
         Returns:
             tuple: (id, source_component_id, target_component_id, relationship_type, properties, created_in_run) or None if not found
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id, source_component_id, target_component_id, relationship_type, properties, created_in_run
@@ -393,7 +399,7 @@ class ThermoVizDatabase:
 
     def get_relationships_for_component(self, component_id):
         """Get all relationships where the component is either source or target."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id, source_component_id, target_component_id, relationship_type, properties, created_in_run
@@ -411,7 +417,7 @@ class ThermoVizDatabase:
 
     def get_all_relationships(self):
         """Get all network relationships."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT id, source_component_id, target_component_id, relationship_type, properties, created_in_run
@@ -428,7 +434,7 @@ class ThermoVizDatabase:
 
     def delete_relationship(self, relationship_id):
         """Delete a relationship by ID."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('DELETE FROM network_relationships WHERE id = ?', (relationship_id,))
             conn.commit()
@@ -451,7 +457,7 @@ class ThermoVizDatabase:
         Returns:
             int: The ID of the inserted measurement
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO measurements (component_id, run_id, timestamp, measurement_type, value, unit)
@@ -472,7 +478,7 @@ class ThermoVizDatabase:
         Returns:
             list of tuples: (id, component_id, run_id, timestamp, measurement_type, value, unit)
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
 
             query = '''
@@ -508,7 +514,7 @@ class ThermoVizDatabase:
         Returns:
             list of tuples: (id, component_id, run_id, timestamp, measurement_type, value, unit)
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
 
             query = '''
@@ -534,7 +540,7 @@ class ThermoVizDatabase:
 
     def delete_measurement(self, measurement_id):
         """Delete a measurement by ID."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('DELETE FROM measurements WHERE id = ?', (measurement_id,))
             conn.commit()
@@ -552,7 +558,7 @@ class ThermoVizDatabase:
         Returns:
             list of tuples: (neighbor_component_id, relationship_type, properties)
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT
@@ -584,7 +590,7 @@ class ThermoVizDatabase:
         Returns:
             int: Number of relationships connected to this component
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT COUNT(*)
@@ -600,7 +606,7 @@ class ThermoVizDatabase:
         value_json = json.dumps(value)
         updated_at = datetime.now().isoformat()
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT OR REPLACE INTO app_state (id, key, value, updated_at)
@@ -621,7 +627,7 @@ class ThermoVizDatabase:
 
     def load_app_state(self, key):
         """Load a piece of application state."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 SELECT value FROM app_state WHERE key = ?
@@ -683,7 +689,7 @@ if __name__ == "__main__":
     print("\n--- Testing Measurements -------")
     db.add_measurement(tank_id, run_id, 0, 'pressure', 101325, 'Pa')
     db.add_measurement(tank_id, run_id, 0, 'temperature', 298.15, 'K')
-    db.add_measurement(valve_id, run_id, 0, 'flow_rate', 0.0015, 'm³/s')
+    db.add_measurement(valve_id, run_id, 0, 'flow_rate', 0.0015, 'mÂ³/s')
     db.add_measurement(sensor_id, run_id, 0, 'pressure', 101325, 'Pa')  # Sensor reading
 
     # Verify data retrieval
@@ -701,4 +707,4 @@ if __name__ == "__main__":
     state = db.load_app_state("last_used_component")
     print(f"Loaded app state: {state}")
 
-    print("\n✅ All tests passed! Database schema enhancement successful.")
+    print("\nâœ… All tests passed! Database schema enhancement successful.")
