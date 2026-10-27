@@ -88,8 +88,8 @@ uv run ideal_gas_app.py
 
 Load `sample_data.xlsx`, choose two columns, plot them, save the active data
 as a run, reload the run from the Database tab, and delete it. The manual
-check uses the per-user database at `~/.thermoviz/thermoviz.db` and should
-complete without an application traceback.
+check uses the per-user database under the `.thermoviz` directory documented
+above and should complete without an application traceback.
 
 ## Extending the Project
 

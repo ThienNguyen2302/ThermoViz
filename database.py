@@ -91,6 +91,50 @@ class ThermoVizDatabase:
                 )
             ''')
 
+            relationship_foreign_keys = cursor.execute(
+                "PRAGMA foreign_key_list(network_relationships)"
+            ).fetchall()
+            has_set_null_origin = any(
+                row[3] == "created_in_run"
+                and row[6].upper() == "SET NULL"
+                for row in relationship_foreign_keys
+            )
+            if relationship_foreign_keys and not has_set_null_origin:
+                cursor.execute(
+                    """
+                    CREATE TABLE network_relationships_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source_component_id INTEGER NOT NULL,
+                        target_component_id INTEGER NOT NULL,
+                        relationship_type TEXT NOT NULL,
+                        properties TEXT,
+                        created_in_run INTEGER,
+                        FOREIGN KEY (source_component_id)
+                            REFERENCES network_components(id),
+                        FOREIGN KEY (target_component_id)
+                            REFERENCES network_components(id),
+                        FOREIGN KEY (created_in_run)
+                            REFERENCES runs(id) ON DELETE SET NULL,
+                        CHECK (source_component_id != target_component_id)
+                    )
+                    """
+                )
+                cursor.execute(
+                    """
+                    INSERT INTO network_relationships_new
+                    (id, source_component_id, target_component_id,
+                     relationship_type, properties, created_in_run)
+                    SELECT id, source_component_id, target_component_id,
+                           relationship_type, properties, created_in_run
+                    FROM network_relationships
+                    """
+                )
+                cursor.execute("DROP TABLE network_relationships")
+                cursor.execute(
+                    "ALTER TABLE network_relationships_new "
+                    "RENAME TO network_relationships"
+                )
+
             # Indexes for common query patterns
             cursor.execute('''
                 CREATE INDEX IF NOT EXISTS idx_measurements_run_component
@@ -332,8 +376,6 @@ class ThermoVizDatabase:
         """Delete a component and its associated relationships."""
         with self._connect() as conn:
             cursor = conn.cursor()
-            # Delete associated measurements first (due to foreign key)
-            cursor.execute('DELETE FROM measurements WHERE component_id = ?', (component_id,))
             # Delete associated relationships
             cursor.execute('DELETE FROM network_relationships WHERE source_component_id = ? OR target_component_id = ?',
                           (component_id, component_id))

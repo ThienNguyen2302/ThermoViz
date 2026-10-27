@@ -3,6 +3,8 @@ import sqlite3
 import pandas as pd
 import pytest
 
+from database import ThermoVizDatabase
+
 
 def test_components_support_json_crud_and_type_filtering(database):
     run_id = database.add_run(pd.DataFrame({"value": [1]}))
@@ -109,7 +111,9 @@ def test_run_deletion_cascades_measurements_and_nulls_originating_links(database
     assert database.get_relationship(relationship_id)[5] is None
 
 
-def test_component_deletion_removes_owned_relationships_and_measurements(database):
+def test_component_deletion_removes_relationships_and_nulls_measurement_component(
+    database,
+):
     run_id = database.add_run(pd.DataFrame({"value": [1]}))
     component_id = database.add_component("Sensor", "sensor")
     other_id = database.add_component("Tank", "tank")
@@ -122,6 +126,72 @@ def test_component_deletion_removes_owned_relationships_and_measurements(databas
 
     assert database.delete_component(component_id)
     assert database.get_relationship(relationship_id) is None
-    assert database.get_measurements_for_component(component_id) == []
-    assert database.delete_measurement(measurement_id) is False
+    assert database.get_measurements_for_run(run_id) == [
+        (measurement_id, None, run_id, 0.0, "temperature", 300.0, None)
+    ]
     assert database.delete_component(component_id) is False
+
+
+def test_legacy_relationship_schema_is_migrated_on_initialization(database_path):
+    with sqlite3.connect(database_path) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                description TEXT,
+                file_path TEXT,
+                data_json TEXT,
+                columns_json TEXT,
+                shape_json TEXT
+            );
+            CREATE TABLE network_components (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                component_type TEXT NOT NULL,
+                properties TEXT,
+                created_in_run INTEGER,
+                FOREIGN KEY (created_in_run) REFERENCES runs(id) ON DELETE SET NULL
+            );
+            CREATE TABLE network_relationships (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_component_id INTEGER NOT NULL,
+                target_component_id INTEGER NOT NULL,
+                relationship_type TEXT NOT NULL,
+                properties TEXT,
+                created_in_run INTEGER,
+                FOREIGN KEY (source_component_id) REFERENCES network_components(id),
+                FOREIGN KEY (target_component_id) REFERENCES network_components(id),
+                FOREIGN KEY (created_in_run) REFERENCES runs(id),
+                CHECK (source_component_id != target_component_id)
+            );
+            CREATE TABLE measurements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                component_id INTEGER,
+                run_id INTEGER NOT NULL,
+                timestamp REAL,
+                measurement_type TEXT NOT NULL,
+                value REAL NOT NULL,
+                unit TEXT,
+                FOREIGN KEY (component_id) REFERENCES network_components(id) ON DELETE SET NULL,
+                FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE
+            );
+            CREATE TABLE app_state (
+                id INTEGER PRIMARY KEY,
+                key TEXT UNIQUE NOT NULL,
+                value TEXT,
+                updated_at TEXT NOT NULL
+            );
+            """
+        )
+
+    database = ThermoVizDatabase(database_path)
+    run_id = database.add_run(pd.DataFrame({"value": [1]}))
+    source_id = database.add_component("Tank", "tank", created_in_run=run_id)
+    target_id = database.add_component("Valve", "valve")
+    relationship_id = database.add_relationship(
+        source_id, target_id, "fluid_flow", created_in_run=run_id
+    )
+
+    assert database.delete_run(run_id)
+    assert database.get_relationship(relationship_id)[5] is None

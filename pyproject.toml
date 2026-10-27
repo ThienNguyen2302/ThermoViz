@@ -18,9 +18,6 @@ dev = [
     "pytest>=9.1.1",
 ]
 
-[project.scripts]
-thermoviz = "thermoviz:main"
-
 [tool.uv]
 package = false
 
