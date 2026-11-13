@@ -1,102 +1,65 @@
-# ThermoViz Agent Documentation
+# ThermoViz agent guide
 
-This file provides essential information for AI agents working on the ThermoViz project.
+## What this project is
 
-## Project Overview
+ThermoViz is a Python desktop application for exploring experimental datasets and, in the current codebase, storing them in SQLite. The UI is Tkinter-based and centered around loading Excel files, plotting columns, and saving/loading runs. The database layer also includes a richer network-modeling schema for components, relationships, and measurements.
 
-ThermoViz is a desktop application designed to integrate SQL databases with physical network models, beginning with an Ideal Gas Law explorer. The application allows users to import experimental data from Excel files, visualize relationships between variables, and will eventually support database storage and network modeling of physical systems.
+## Repository layout
 
-## Current State
+- `ideal_gas_app.py`: Tkinter app entry point and UI logic.
+- `database.py`: SQLite data layer (`ThermoVizDatabase`).
+- `tests/`: pytest coverage for database behavior and import smoke checks.
+- `README.md`: project overview and user-facing workflow.
+- `sample_data.xlsx`: sample Ideal Gas Law dataset.
+- `test_imports.py`: import and Tkinter availability smoke test.
 
-The application currently includes:
-- Excel file import functionality
-- Interactive data plotting (scatter plots)
-- Tabular data display
-- Sample ideal gas law data for immediate testing
-- Basic GUI built with Tkinter
+## Working commands
 
-## Tech Stack Summary
+Use the repo-managed environment via `uv`.
 
-**Language**: Python 3.14.7  
-**GUI**: Tkinter  
-**Data Processing**: pandas, openpyxl  
-**Visualization**: matplotlib  
-**Planned**: networkx for network modeling, SQLite for data storage  
-**Environment**: Virtual environment (venv) with pinned dependencies
+- Install dependencies: `uv sync`
+- Run the app: `uv run ideal_gas_app.py`
+- Run the full suite: `uv run pytest`
+- Run a single file: `uv run pytest tests/test_database_runs.py -q`
+- Run one specific test: `uv run pytest tests/test_database_network.py -k component_deletion -q`
+- Run the import/Tkinter check: `uv run python test_imports.py`
 
-## Key Files
+There is no dedicated lint configuration in the repository right now; the active validation path is pytest plus `test_imports.py`.
 
-- `ideal_gas_app.py` - Main application logic
-- `sample_data.xlsx` - Test dataset (ideal gas law calculations)
-- `test_imports.py` - Dependency verification script
-- `skills/thermoviz-stack.md` - Detailed technology stack documentation
-- `README.md` - User-focused project overview
-- `.gitignore` - Standard Python/git exclusions
+## Architecture and data flow
 
-## Development Guidelines
+The important picture is:
 
-1. **Virtual Environment**: Always work within the activated venv
-   ```bash
-   # Windows
-   venv\Scripts\activate
-   # Unix/macOS
-   source venv/bin/activate
-   ```
+1. Excel file is read with pandas.
+2. The DataFrame is displayed and plotted in the Tkinter UI.
+3. The app persists runs through `ThermoVizDatabase.add_run()`.
+4. `database.py` stores JSON payloads for data, columns, and shape, along with metadata like description and file path.
+5. The database layer also supports network entities (`network_components`, `network_relationships`, `measurements`, `app_state`).
 
-2. **Dependencies**: Core packages are pandas, matplotlib, openpyxl. 
-   Additional planned packages: networkx, (optional) SQLAlchemy
+Keep this separation intact: UI logic belongs in `ideal_gas_app.py`; persistence, schema, migration, and query logic belong in `database.py`.
 
-3. **Code Structure**: 
-   - Keep GUI logic separate from data processing where possible
-   - Use classes for modularity (current app uses IdealGasApp class)
-   - Add new features as additional methods or classes
-   - For database work, consider creating a separate database module
+## Conventions specific to this repo
 
-4. **UI Patterns**:
-   - Main window uses ttk.Notebook for tabbed interface
-   - Data displayed in ttk.Treeview for tabular data
-   - Plots embedded via FigureCanvasTkAgg from matplotlib
-   - Controls use standard ttk widgets (Buttons, Comboboxes, Labels)
+- Prefer `ThermoVizDatabase` over ad hoc SQLite code in the UI.
+- Treat the app as a DataFrame-centric desktop tool, not a web app; most state is local and in-memory until saved.
+- Keep new tests isolated from the default home-directory database. The fixtures in `tests/conftest.py` deliberately use `tmp_path`.
+- Preserve the existing JSON-backed storage layout (`data_json`, `columns_json`, `shape_json`, `properties`).
+- When changing schemas or migrations, validate both the current behavior and the legacy migration tests in `tests/test_database_network.py`.
+- The app is local-first and writes to `~/.thermoviz/thermoviz.db` when a custom path is not provided.
 
-## Immediate Next Steps for Development
+## Environment and compatibility
 
-1. **Database Integration**:
-   - Add SQLite database connection/storage capabilities
-   - Create schema for storing experimental data
-   - Implement save/load/query GUI controls
+- Python requirement: `>=3.14` per `pyproject.toml`.
+- The project uses `uv` with `package = false`, so run commands through `uv run ...` instead of expecting an installed project package.
+- Tkinter must work in the environment; the import smoke test checks this separately from dependency import failures.
 
-2. **Network Modeling**:
-   - Integrate networkx for graph creation
-   - Add network visualization tab
-   - Implement node/edge creation and editing
+## Editing guidance
 
-3. **Enhanced Features**:
-   - Additional plot types (line, bar, etc.)
-   - Data analysis tools (statistics, fitting)
-   - Export capabilities (images, reports)
+- Update the database layer before adding new persistence behavior in the UI.
+- Keep `IdealGasApp` methods focused on orchestrating interactions, not on raw SQL statements.
+- Favor small, targeted tests for any database contract change or UI regression.
+- If you need to validate manually, load `sample_data.xlsx`, choose two columns, plot them, save a run, reload it, and delete it.
 
-## Running the Application
+## Summary
 
-```bash
-cd /d/ThermoViz
-# Activate environment if not already active
-venv\Scripts\activate  # Windows
-# or source venv/bin/activate  # Unix/macOS
-python ideal_gas_app.py
-```
-
-## Testing
-
-Run dependency verification:
-```bash
-python test_imports.py
-```
-
-This should confirm all required packages are available and Tkinter is functional.
-
-## Contact
-
-For questions about extending or modifying this application, refer to the detailed technology stack in `skills/thermoviz-stack.md` or the user instructions in `README.md`.
-
----
-*This document helps AI agents quickly understand the ThermoViz project structure and contribute effectively to its development.*
+This repo is a compact Python desktop + SQLite project with a clear separation between the Tkinter UI and the persistence layer. The best way to work safely here is to keep the app logic thin, reuse `ThermoVizDatabase`, and validate with the existing pytest tests and `test_imports.py` smoke check.
